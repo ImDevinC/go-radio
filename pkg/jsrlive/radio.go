@@ -132,6 +132,36 @@ func DownloadSongs() {
 	}
 }
 
+func DownloadIcons() {
+	rootPath := "stations/"
+	for _, station := range GetStations() {
+		filePath := rootPath + station
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			os.Mkdir(filePath, os.ModeDir)
+		}
+		if _, err := os.Stat(filePath + "/icon.png"); !os.IsNotExist(err) {
+			fmt.Println("icon exists for station " + station)
+			continue
+		}
+		fmt.Println("Downloading icon for " + station)
+		resp, err := http.Get(urlBase + "/radio/stations/" + station + "/images/icon.png")
+		if err != nil {
+			fmt.Println("failed to download icon, error: ", err)
+			continue
+		}
+		buf, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("failed to get bytes, error: ", err)
+			continue
+		}
+		err = ioutil.WriteFile(filePath+"/icon.png", buf, fs.ModeAppend)
+		if err != nil {
+			fmt.Println("failed to save file, error: ", err)
+			continue
+		}
+	}
+}
+
 func downloadSong(station string, song string) error {
 	songURL := FormatSong(station, song)
 	resp, err := http.Get(songURL)

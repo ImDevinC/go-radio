@@ -15,12 +15,6 @@ import (
 	"github.com/jonas747/dca"
 )
 
-const (
-	channels  int = 2
-	frameRate int = 48000
-	frameSize int = 960
-)
-
 const prefix = "!jsrlive"
 
 type Client struct {
@@ -101,12 +95,10 @@ func joinVoiceChannel(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	if channelID == "" {
 		return errors.New("failed to find channel")
 	}
-	fmt.Println("Trying to join channel")
 	vc, err := s.ChannelVoiceJoin(c.GuildID, channelID, false, true)
 	if err != nil {
 		return err
 	}
-	fmt.Println("joined")
 	voiceChannels[c.GuildID] = vc
 	return nil
 }
@@ -116,10 +108,6 @@ func startRadio(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	if err != nil {
 		return err
 	}
-	// g, err := s.State.Guild(c.GuildID)
-	// if err != nil {
-	// 	return err
-	// }
 	vc := voiceChannels[c.GuildID]
 	if vc == nil {
 		return errors.New("not joined to a voice channel")
@@ -128,32 +116,15 @@ func startRadio(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	if err != nil {
 		return err
 	}
-	// resp, err := http.Get(jsrlive.FormatSong("ultraremixes", songs[0]))
-	// if err != nil {
-	// 	return err
-	// }
-	// defer resp.Body.Close()
-
-	// run := exec.Command("ffmpeg.exe", "-i", "-", "-f", "-s161e", "-ar", strconv.Itoa(frameRate), "-ac", strconv.Itoa(channels), "pipe:1")
-	// run.Stdin = resp.Body
-	// stdout, err := run.StdoutPipe()
-	// if err != nil {
-	// 	return err
-	// }
-	// err = run.Start()
-	// if err != nil {
-	// 	return err
-	// }
 
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
 	options.Bitrate = 96
 	options.Application = "lowdelay"
 	songURL := jsrlive.FormatSong("ultraremixes", songs[0])
-	fmt.Println("Encoding " + songURL)
+
 	encodingSession, err := dca.EncodeFile(songURL, options)
 	if err != nil {
-		fmt.Println("failed encoding")
 		return err
 	}
 	defer encodingSession.Cleanup()
@@ -161,28 +132,23 @@ func startRadio(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	vc.Speaking(true)
 	defer vc.Speaking(false)
 
-	fmt.Println("starting stream")
 	d := make(chan error)
 	stream := dca.NewStream(encodingSession, vc, d)
 	for {
 		err = <-d
 		if err != nil && err != io.EOF {
-			fmt.Println("error streaming")
 			return err
 		}
 		frame, err := encodingSession.OpusFrame()
 		if err != nil {
-			fmt.Println("error getting opusframe")
 			return err
 		}
 		vc.OpusSend <- frame
 		finished, err := stream.Finished()
 		if err != nil {
-			fmt.Println("error with stream finishing")
 			return err
 		}
 		if err == io.EOF || finished {
-			fmt.Println("EOF")
 			break
 		}
 	}
