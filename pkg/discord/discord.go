@@ -3,12 +3,13 @@ package discord
 import (
 	"errors"
 	"fmt"
-	"go-radio/pkg/jsrlive"
 	"io"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/ImDevinC/go-radio/pkg/jsrlive"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jonas747/dca"
